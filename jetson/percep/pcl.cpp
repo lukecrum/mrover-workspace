@@ -1,10 +1,13 @@
+#include "pcl.hpp"
 #include "perception.hpp"
+
 #if OBSTACLE_DETECTION
 /* --- Pass Through Filter --- */
 //Filters out all points with z values that aren't within a threshold
 //Z values are depth values in mm
 //Source: https://rb.gy/kkyi80
-void PassThroughFilter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr) {
+
+void PCL::PassThroughFilter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr) {
     #if PERCEPTION_DEBUG
         pcl::ScopeTime t ("PassThroughFilter");
     #endif
@@ -22,7 +25,7 @@ void PassThroughFilter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr) {
 //All points in a cluster are then reduced to a single point
 //This point is the centroid of the cluster
 //Source: https://rb.gy/2ybg8n
-void DownsampleVoxelFilter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr) {
+void PCL::DownsampleVoxelFilter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr) {
     #if PERCEPTION_DEBUG
         pcl::ScopeTime t ("VoxelFilter");
     #endif
@@ -41,7 +44,7 @@ void DownsampleVoxelFilter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr
 //Colors all points in this plane blue or
 //removes points completely from point cloud
 //Source: https://rb.gy/zx6ojh
-void RANSACSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, string type) {
+void PCL::RANSACSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, string type) {
     #if PERCEPTION_DEBUG
         pcl::ScopeTime t ("RANSACSegmentation");
     #endif
@@ -88,7 +91,7 @@ void RANSACSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, s
 //Use this tree to traverse point cloud and create vector of clusters
 //Return vector of clusters
 //Source: https://rb.gy/qvjati
-void CPUEuclidianClusterExtraction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr,  
+void PCL::CPUEuclidianClusterExtraction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr,  
                                     std::vector<pcl::PointIndices> &cluster_indices) {
     #if PERCEPTION_DEBUG
         pcl::ScopeTime t ("CPU Cluster Extraction");
@@ -139,7 +142,7 @@ void CPUEuclidianClusterExtraction(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_c
 /* --- Find Interest Points --- */
 //Finds the edges of each cluster by comparing x and y
 //values of all points in the cluster to find desired ones
-void FindInterestPoints(std::vector<pcl::PointIndices> &cluster_indices, 
+void PCL::FindInterestPoints(std::vector<pcl::PointIndices> &cluster_indices, 
                         pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, 
                         std::vector<std::vector<int>> &interest_points) {
 
@@ -288,7 +291,7 @@ bool CheckPath(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr,
 
 /* --- Find Clear Path --- */
 //Returns the angle to a clear path
-double FindClearPath(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, 
+bool PCL::FindClearPath(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, 
                             std::vector<std::vector<int>> interest_points,
                       shared_ptr<pcl::visualization::PCLVisualizer> viewer, 
                       obstacle_return & result) {
@@ -461,11 +464,25 @@ double FindClearPath(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr,
     return leftAngle;
 }
 
+shared_ptr<pcl::visualization::PCLVisualizer> PCL::createRGBVisualizer(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud) {
+    // Open 3D viewer and add point cloud
+    shared_ptr<pcl::visualization::PCLVisualizer> viewer(
+      new pcl::visualization::PCLVisualizer("PCL ZED 3D Viewer")); //This is a smart pointer so no need to worry ab deleteing it
+    viewer->setBackgroundColor(0.12, 0.12, 0.12);
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+    viewer->addPointCloud<pcl::PointXYZRGB>(cloud, rgb);
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.5);
+    viewer->addCoordinateSystem(1.0);
+    viewer->initCameraParameters();
+    viewer->setCameraPosition(0,0,-800,0,-1,0);
+    return (viewer);
+}
+
 /* --- Main --- */
 //This is the main point cloud processing function
 //It returns the bearing the rover should traverse
 //This function is called in main.cpp
-obstacle_return pcl_obstacle_detection(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, 
+obstacle_return PCL::pcl_obstacle_detection(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pt_cloud_ptr, 
                                                 shared_ptr<pcl::visualization::PCLVisualizer> viewer) {
     obstacle_return result;
     PassThroughFilter(pt_cloud_ptr);

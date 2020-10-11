@@ -125,3 +125,6 @@ obstacle_return pcl_obstacle_detection(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & 
 
 //ar tag detector class
 #include "artag_detector.hpp"
+
+//pcl class
+#include "pcl.hpp"

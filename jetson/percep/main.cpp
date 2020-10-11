@@ -41,23 +41,6 @@ bool cam_grab_succeed(Camera &cam, int & counter_fail) {
   return true;
 }
 
-#if OBSTACLE_DETECTION
-//Creates a PCL Visualizer
-shared_ptr<pcl::visualization::PCLVisualizer> createRGBVisualizer(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud) {
-    // Open 3D viewer and add point cloud
-    shared_ptr<pcl::visualization::PCLVisualizer> viewer(
-      new pcl::visualization::PCLVisualizer("PCL ZED 3D Viewer")); //This is a smart pointer so no need to worry ab deleteing it
-    viewer->setBackgroundColor(0.12, 0.12, 0.12);
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-    viewer->addPointCloud<pcl::PointXYZRGB>(cloud, rgb);
-    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.5);
-    viewer->addCoordinateSystem(1.0);
-    viewer->initCameraParameters();
-    viewer->setCameraPosition(0,0,-800,0,-1,0);
-    return (viewer);
-}
-#endif
-
 static string rgb_foldername, depth_foldername;
 void disk_record_init() {
   #if WRITE_CURR_FRAME_TO_DISK
@@ -141,13 +124,23 @@ int main() {
 
   #if OBSTACLE_DETECTION
   /* --- Dynamically Allocate Point Cloud --- */
+
+
+   //Initialize PCL
+  PCL pointcloud;
+
+  #if WITH_ZED
   sl::Resolution cloud_res = sl::Resolution(PT_CLOUD_WIDTH, PT_CLOUD_HEIGHT);
+  #endif
+
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>); //This is a smart pointer so no need to worry ab deleteing it
- 
+  shared_ptr<pcl::visualization::PCLVisualizer> rgbviewer = pointcloud.createRGBVisualizer(point_cloud_ptr);
+  pointcloud.pcl_obstacle_detection(point_cloud_ptr, rgbviewer);
+
   #if PERCEPTION_DEBUG
     //Create PCL Visualizer
-    shared_ptr<pcl::visualization::PCLVisualizer> viewer = createRGBVisualizer(point_cloud_ptr); //This is a smart pointer so no need to worry ab deleteing it
-    shared_ptr<pcl::visualization::PCLVisualizer> viewer_original = createRGBVisualizer(point_cloud_ptr);
+    shared_ptr<pcl::visualization::PCLVisualizer> viewer = pointcloud.createRGBVisualizer(point_cloud_ptr); //This is a smart pointer so no need to worry ab deleteing it
+    shared_ptr<pcl::visualization::PCLVisualizer> viewer_original = pointcloud.createRGBVisualizer(point_cloud_ptr);
   #endif
 
   #endif
@@ -218,12 +211,14 @@ int main() {
     #if OBSTACLE_DETECTION
 
     //Update Point Cloud
+    #if WITH_ZED
     point_cloud_ptr->clear();
     point_cloud_ptr->points.resize(cloud_res.area());
     point_cloud_ptr->width = PT_CLOUD_WIDTH;
     point_cloud_ptr->height = PT_CLOUD_HEIGHT;
-    
+
     cam.getDataCloud(point_cloud_ptr);
+    #endif
 
     #if PERCEPTION_DEBUG
     //Update Original 3D Viewer

@@ -256,7 +256,9 @@ cv::Mat Camera::depth() {
 	return this->impl_->depth();
 }
 #if OBSTACLE_DETECTION
+#if WITH_ZED
 void Camera::getDataCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &p_pcl_point_cloud) {
   this->impl_->dataCloud(p_pcl_point_cloud);
 }
+#endif
 #endif
